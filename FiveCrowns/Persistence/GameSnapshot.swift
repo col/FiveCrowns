@@ -25,6 +25,25 @@ struct GameSnapshot: Codable, Sendable, Equatable {
     var clampedRound: Round {
         Round(rawValue: min(max(round, Round.first.rawValue), Round.last.rawValue)) ?? .one
     }
+
+    /// A file written by a newer build than this one. Such a file must not be
+    /// loaded (its fields would be silently dropped) and must not be
+    /// overwritten (the newer build's data is still recoverable).
+    var isFromFutureVersion: Bool { schemaVersion > Self.currentSchemaVersion }
+
+    private enum CodingKeys: String, CodingKey {
+        case schemaVersion, round, players
+    }
+
+    /// Always stamps `currentSchemaVersion`, never the value that was read.
+    /// Echoing a foreign version back out would leave a file claiming to hold
+    /// data this build has already dropped.
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(Self.currentSchemaVersion, forKey: .schemaVersion)
+        try container.encode(round, forKey: .round)
+        try container.encode(players, forKey: .players)
+    }
 }
 
 struct PlayerSnapshot: Codable, Sendable, Equatable {
@@ -44,12 +63,25 @@ extension GameSnapshot {
         guard let legacy = try? JSONDecoder().decode([LegacyPlayer].self, from: data) else {
             return nil
         }
-        self.init(
-            round: Round.first.rawValue,   // v1 never persisted the round
-            players: legacy.map {
-                PlayerSnapshot(id: $0.id, name: $0.name, scores: $0.scores)
-            }
-        )
+        let players = legacy.map {
+            PlayerSnapshot(id: $0.id, name: $0.name, scores: $0.scores)
+        }
+        // v1 never persisted the round, but the scores make it inferable.
+        self.init(round: Self.inferredRound(from: players), players: players)
+    }
+
+    /// Where a migrated game should resume, deduced from which rounds have
+    /// been scored.
+    ///
+    /// The highest scored round is finished only if *every* player has a score
+    /// for it; then play resumes at the round after. If anyone still owes a
+    /// score for it, that round is still in progress and is the resume point.
+    static func inferredRound(from players: [PlayerSnapshot]) -> Int {
+        guard let highest = players.compactMap({ $0.scores.keys.max() }).max() else {
+            return Round.first.rawValue   // nobody has scored anything
+        }
+        let roundIsComplete = players.allSatisfy { $0.scores[highest] != nil }
+        return roundIsComplete ? min(highest + 1, Round.last.rawValue) : highest
     }
 }
 
