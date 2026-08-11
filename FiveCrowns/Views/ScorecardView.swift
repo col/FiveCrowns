@@ -2,21 +2,36 @@ import SwiftUI
 
 struct ScorecardView: View {
     @Environment(\.scenePhase) private var scenePhase
+    @Environment(\.verticalSizeClass) private var verticalSizeClass
     @Environment(Game.self) private var game
 
     @State private var showingLeaderboard = false
     @State private var showingRoundComplete = false
     @State private var showingGameOver = false
-    @State private var showingNewGameConfirmation = false
 
     private let buttonTint = Theme.button
 
+    /// Landscape on iPhone. There is no room for a navigation row of its own,
+    /// so the round controls move up beside the header.
+    private var isCompactHeight: Bool { verticalSizeClass == .compact }
+
     var body: some View {
         VStack(spacing: 0) {
-            RoundHeader(round: game.round)
-            scorecard
-            Spacer(minLength: 0)
-            roundNavigation
+            if isCompactHeight {
+                HStack(spacing: 8) {
+                    previousButton
+                    RoundHeader(round: game.round)
+                    nextButton
+                }
+                .padding(.horizontal)
+            } else {
+                RoundHeader(round: game.round)
+            }
+            ScorecardList()
+            if !isCompactHeight {
+                Spacer(minLength: 0)
+                roundNavigation
+            }
             if game.round > .one { leaderboardButton }
         }
         .frame(maxWidth: 560)
@@ -37,12 +52,6 @@ struct ScorecardView: View {
         } message: {
             if let winner = game.winner { Text("\(winner.name) is the winner!") }
         }
-        .alert("Start New Game?", isPresented: $showingNewGameConfirmation) {
-            Button("Cancel", role: .cancel) {}
-            Button("OK") { game.startNewGame() }
-        } message: {
-            Text("Are you sure?")
-        }
         .onChange(of: game.needsRoundCompleteAnnouncement) { _, needsAnnouncement in
             guard needsAnnouncement else { return }
             if game.isGameOver { showingGameOver = true } else { showingRoundComplete = true }
@@ -52,52 +61,36 @@ struct ScorecardView: View {
         }
     }
 
-    @ViewBuilder
-    private var scorecard: some View {
-        if game.players.isEmpty { AddPlayerButton() } else { ScorecardHeaders() }
-
-        ScrollView {
-            VStack(spacing: 0) {
-                ForEach(game.players) { player in
-                    ScorecardRow(player: player, editMode: game.round == .one)
-                    Divider().overlay(Theme.headerRow)
-                }
-                if !game.players.isEmpty && game.round == .one {
-                    AddPlayerButton().padding(.top, 16)
-                }
-                if game.isGameOver {
-                    Button { showingNewGameConfirmation = true } label: {
-                        Label("New Game", systemImage: "arrow.clockwise")
-                            .foregroundStyle(Theme.onButton)
-                    }
-                    .buttonStyle(.borderedProminent)
-                    .tint(buttonTint)
-                    .padding()
-                }
-            }
+    private var previousButton: some View {
+        Button(action: game.retreat) {
+            Label("Previous", systemImage: "arrow.backward")
+                .fontWeight(.semibold)
+                .foregroundStyle(Theme.onButton)
         }
-        .frame(minHeight: 0)
+        .disabled(!game.canRetreat)
+        .labelStyle(.titleAndIcon)
+        .buttonStyle(.borderedProminent)
+        .tint(buttonTint)
+    }
+
+    private var nextButton: some View {
+        Button(action: game.advance) {
+            Label("Next", systemImage: "arrow.forward")
+                .fontWeight(.semibold)
+                .foregroundStyle(Theme.onButton)
+        }
+        .disabled(!game.canAdvance)
+        .labelStyle(.titleAndIcon)
+        .buttonStyle(.borderedProminent)
+        .tint(buttonTint)
     }
 
     private var roundNavigation: some View {
         HStack {
-            Button(action: game.retreat) {
-                Label("Previous", systemImage: "arrow.backward")
-                    .fontWeight(.semibold)
-                    .foregroundStyle(Theme.onButton)
-            }
-            .disabled(!game.canRetreat)
+            previousButton
             Spacer()
-            Button(action: game.advance) {
-                Label("Next", systemImage: "arrow.forward")
-                    .fontWeight(.semibold)
-                    .foregroundStyle(Theme.onButton)
-            }
-            .disabled(!game.canAdvance)
+            nextButton
         }
-        .labelStyle(.titleAndIcon)
-        .buttonStyle(.borderedProminent)
-        .tint(buttonTint)
         .padding()
     }
 
