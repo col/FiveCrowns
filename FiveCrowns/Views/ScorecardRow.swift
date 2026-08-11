@@ -72,9 +72,12 @@ struct ScorecardRow: View {
         .padding(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
         .background(Color("RowColour", bundle: .main).opacity(0.8))
         .alert("Enter Score", isPresented: $showingAddScore, actions: {
+            Button("Cancel", role: .cancel, action: {})
             Button("Went Down!", role: .none, action: wentDown)
             Button("Confirm", role: .none, action: addScore)
-            TextField("Score", text: $newScore).keyboardType(.numberPad).focused($scoreFieldIsFocused)
+            TextField("Score", text: $newScore)
+                .keyboardType(.numberPad)
+                .focused($scoreFieldIsFocused)
         }, message: {
             Text("Enter score for \(player.name)")
         })
