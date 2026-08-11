@@ -232,7 +232,7 @@ Every text-on-surface pair must clear WCAG AA contrast (4.5:1) in both appearanc
 - Compact-height layouts (iPhone landscape) move round controls inline with the header rather than below a `Spacer()`.
 - Scrolling is always enabled.
 
-Verification matrix: iPhone SE, iPhone 17 Pro, iPad 11" — each in portrait and landscape, light and dark, at Dynamic Type XL.
+Verification matrix: iPhone 17e, iPhone 17 Pro, iPad Pro 11-inch (M5) — each in portrait and landscape, light and dark, at Dynamic Type XL.
 
 ### Concurrency
 
@@ -320,6 +320,6 @@ Phase 1 runs first so that phases 2–7 have a regression net. Phase 4 is positi
 - [ ] Zero build warnings
 - [ ] All tests pass
 - [ ] Header text legible in dark mode; all text/surface pairs clear WCAG AA
-- [ ] Layout correct on iPhone SE, iPhone 17 Pro, iPad 11", portrait and landscape
+- [ ] Layout correct on iPhone 17e, iPhone 17 Pro, iPad Pro 11-inch (M5), portrait and landscape
 - [ ] `ScorecardView` under 120 lines
 - [ ] No dead code
