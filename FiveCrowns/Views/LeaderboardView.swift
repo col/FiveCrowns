@@ -33,6 +33,7 @@ struct LeaderboardView: View {
         Button(action: { showView = false }) {
             Label("Close", systemImage: "xmark")
                 .fontWeight(.semibold)
+                .foregroundStyle(Theme.onButton)
                 .padding(.vertical, 4)
                 .padding(.horizontal, 16)
         }

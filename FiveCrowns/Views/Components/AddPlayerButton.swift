@@ -16,6 +16,7 @@ struct AddPlayerButton: View {
         } label: {
             Label("Add Player", systemImage: "plus")
                 .fontWeight(.semibold)
+                .foregroundStyle(Theme.onButton)
                 .padding(.vertical, 8)
                 .padding(.horizontal, 16)
         }

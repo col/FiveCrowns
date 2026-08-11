@@ -13,6 +13,9 @@ enum Theme {
     static let primaryText = Color(.primaryText)
     static let secondaryText = Color(.secondaryText)
     static let onHeader = Color(.onHeader)
+    /// Label colour for the amber button fill. Near-black in *both*
+    /// appearances - the fill is light in both, so this does not invert.
+    static let onButton = Color(.onButton)
 
     static let backgroundGradient = Gradient(colors: [backgroundDark, backgroundMiddle, background])
 }

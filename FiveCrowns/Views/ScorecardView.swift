@@ -65,6 +65,7 @@ struct ScorecardView: View {
                 if game.isGameOver {
                     Button { showingNewGameConfirmation = true } label: {
                         Label("New Game", systemImage: "arrow.clockwise")
+                            .foregroundStyle(Theme.onButton)
                     }
                     .buttonStyle(.borderedProminent)
                     .tint(buttonTint)
@@ -78,12 +79,16 @@ struct ScorecardView: View {
     private var roundNavigation: some View {
         HStack {
             Button(action: game.retreat) {
-                Label("Previous", systemImage: "arrow.backward").fontWeight(.semibold)
+                Label("Previous", systemImage: "arrow.backward")
+                    .fontWeight(.semibold)
+                    .foregroundStyle(Theme.onButton)
             }
             .disabled(!game.canRetreat)
             Spacer()
             Button(action: game.advance) {
-                Label("Next", systemImage: "arrow.forward").fontWeight(.semibold)
+                Label("Next", systemImage: "arrow.forward")
+                    .fontWeight(.semibold)
+                    .foregroundStyle(Theme.onButton)
             }
             .disabled(!game.canAdvance)
         }
@@ -97,6 +102,7 @@ struct ScorecardView: View {
         Button { showingLeaderboard = true } label: {
             Label("Leaderboard", systemImage: "list.star")
                 .fontWeight(.semibold)
+                .foregroundStyle(Theme.onButton)
                 .padding(.vertical, 8)
                 .padding(.horizontal, 16)
         }
