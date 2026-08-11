@@ -37,14 +37,14 @@ struct ScorecardView: View {
                 .fontWeight(.bold)
                 .font(.title2)
                 .padding()
-                .frame(width: .infinity, alignment: .center)
+                .frame(maxWidth: .infinity, alignment: .center)
             Spacer()
             Image("ScorecardLogo", bundle: .main).resizable()
                 .frame(width: 66, height: 66)
                 .padding(.trailing, 8)
         }
         .padding(.vertical)
-        .frame(width: .infinity)
+        .frame(maxWidth: .infinity)
         
         
         
@@ -114,8 +114,7 @@ struct ScorecardView: View {
                 
             }
             .frame(minHeight: 0)
-            .scrollDisabled(round < 6)
-            
+
             if showingNewGameButton {
                 Button(action: { showingNewGameConfirmation = true }) {
                     Label("New Game", systemImage: "arrow.clockwise")
@@ -172,9 +171,11 @@ struct ScorecardView: View {
             Spacer()
             
             Button(action: nextRound) {
-                Label("   Next   ", systemImage: "arrow.forward").fontWeight(.semibold).labelStyle(.titleOnly)
-                Label("", systemImage: "arrow.forward").labelStyle(.iconOnly)
+                Label("Next", systemImage: "arrow.forward")
+                    .fontWeight(.semibold)
+                    .labelStyle(.titleAndIcon)
             }
+            .disabled(round == 11)
             .tint(Color("ButtonColour", bundle: .main).opacity(0.8))
             .buttonStyle(.borderedProminent)
             .padding(.vertical, 8)
