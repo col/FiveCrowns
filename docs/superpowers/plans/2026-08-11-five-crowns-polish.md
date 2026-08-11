@@ -643,10 +643,18 @@ and:
 - [ ] **Step 4: Verify no crash paths remain**
 
 ```bash
-grep -rn --include="*.swift" -E "fatalError|puts\(" FiveCrowns/
+grep -rn --include="*.swift" "fatalError" FiveCrowns/
 ```
 
 Expected: **no output.**
+
+```bash
+grep -rn --include="*.swift" "puts(" FiveCrowns/
+```
+
+Expected: **exactly 8 hits**, all inside `#Preview` blocks — 4 in `Views/ScorecardRow.swift` and 4 in `Views/Components/ScorecardHeaders.swift`, passed as `scoreChanged:` / `playerDeleted:` closures. Leave them. They are preview scaffolding, not crash paths, and both files' previews are rewritten later: `ScorecardRow` in Task 13 (its initialiser signature changes, so the previews *must* be updated to compile) and `ScorecardHeaders` in Task 13 for the same reason. Task 21 verifies the count has reached zero by then.
+
+Do **not** expand this task's scope to fix them — view code belongs to Task 13.
 
 - [ ] **Step 5: Build and test**
 
@@ -2078,6 +2086,24 @@ struct ScorecardRow: View {
 ```
 
 In `FiveCrowns/Views/LeaderboardView.swift`, replace `game.leaderboardPlayers()` with `game.leaderboard` and the hardcoded colours with `Theme` equivalents.
+
+**`ScorecardHeaders.swift` must also be updated.** Its `#Preview` constructs `ScorecardRow(player:round:scoreChanged:playerDeleted:editMode:)`, which no longer exists — the file will not compile until the preview is rewritten. Replace both previews in `Views/Components/ScorecardHeaders.swift` and `Views/ScorecardRow.swift` with the new signature, which also clears the 8 leftover `puts(...)` debug calls those previews pass as closures:
+
+```swift
+#Preview {
+    @Previewable @State var game = Game(store: GameStore(
+        fileURL: FileManager.default.temporaryDirectory.appendingPathComponent("preview.data")))
+    VStack(spacing: 0) {
+        ScorecardHeaders()
+        ScorecardRow(player: Player(name: "Ada"), editMode: true)
+        Divider()
+        ScorecardRow(player: Player(name: "Grace"), editMode: true)
+    }
+    .environment(game)
+}
+```
+
+After this task, `grep -rn --include="*.swift" "puts(" FiveCrowns/` must return **no output**.
 
 - [ ] **Step 6: Run the full unit suite**
 
