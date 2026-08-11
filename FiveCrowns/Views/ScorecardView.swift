@@ -19,6 +19,9 @@ struct ScorecardView: View {
             roundNavigation
             if game.round > .one { leaderboardButton }
         }
+        .frame(maxWidth: 560)
+        .frame(maxWidth: .infinity)
+        .background(Theme.backgroundGradient.opacity(0.8), ignoresSafeAreaEdges: .all)
         .popover(isPresented: $showingLeaderboard) {
             LeaderboardView(showView: $showingLeaderboard)
         }

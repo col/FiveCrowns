@@ -17,7 +17,6 @@ struct FiveCrownsApp: App {
         WindowGroup {
             ScorecardView()
                 .environment(game)
-                .background(Theme.backgroundGradient)
                 .task { await game.loadFromDisk() }
         }
     }
