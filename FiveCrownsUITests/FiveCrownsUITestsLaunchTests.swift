@@ -7,6 +7,7 @@
 
 import XCTest
 
+@MainActor
 final class FiveCrownsUITestsLaunchTests: XCTestCase {
 
     override class var runsForEachTargetApplicationUIConfiguration: Bool {
