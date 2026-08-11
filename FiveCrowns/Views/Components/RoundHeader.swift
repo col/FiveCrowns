@@ -24,6 +24,7 @@ struct RoundHeader: View {
             .resizable()
             .frame(width: 66, height: 66)
             .padding(.horizontal, 8)
+            .accessibilityHidden(true)
     }
 }
 

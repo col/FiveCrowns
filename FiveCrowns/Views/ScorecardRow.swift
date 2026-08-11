@@ -21,29 +21,29 @@ struct ScorecardRow: View {
                     Image(systemName: "trash").padding(.vertical, 8).padding(.leading, 8)
                 }
                 .foregroundColor(.red)
+                .accessibilityLabel("Remove \(player.name)")
             }
 
-            Text(player.name)
-                .foregroundStyle(Theme.primaryText)
-                .fontWeight(.medium)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(8)
-                .onTapGesture(perform: showRename)
+            Button(action: showRename) {
+                Text(player.name)
+                    .foregroundStyle(Theme.primaryText)
+                    .fontWeight(.medium)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(8)
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel("Player \(player.name)")
+            .accessibilityHint("Double tap to rename")
 
-            Text(points.map(String.init) ?? "-")
-                .foregroundStyle(Theme.primaryText)
-                .fontWeight(.medium)
-                .frame(minWidth: 44)
-                .padding(8)
-                .border(points == nil ? Color.gray : Color.accentColor)
-                .background(points == 0 ? Color.accentColor.opacity(0.2) : Color.clear)
-                .onTapGesture(perform: showAddScore)
+            ScoreCell(points: points, playerName: player.name, action: showAddScore)
 
             Text("\(player.totalPoints)")
                 .foregroundStyle(Theme.primaryText)
                 .fontWeight(.semibold)
                 .frame(minWidth: 44)
                 .padding(8)
+                .accessibilityLabel("Total for \(player.name)")
+                .accessibilityValue("\(player.totalPoints) points")
         }
         .frame(maxWidth: .infinity)
         .padding(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
