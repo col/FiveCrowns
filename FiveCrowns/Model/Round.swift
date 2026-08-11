@@ -7,33 +7,19 @@
 
 import Foundation
 
-class Round {    
-    static func wildcardFor(round: Int) -> String {
-        switch round {
-        case 1:
-            "Three"
-        case 2:
-            "Four"
-        case 3:
-            "Five"
-        case 4:
-            "Six"
-        case 5:
-            "Seven"
-        case 6:
-            "Eight"
-        case 7:
-            "Nine"
-        case 8:
-            "Ten"
-        case 9:
-            "Jack"
-        case 10:
-            "Queen"
-        case 11:
-            "King"
-        default:
-            ""
-        }
-    }
+/// A round of Five Crowns. Eleven rounds are played, dealing three cards in
+/// the first and thirteen in the last.
+enum Round: Int, CaseIterable, Codable, Sendable, Comparable {
+    case one = 1, two, three, four, five, six, seven, eight, nine, ten, eleven
+
+    static let first = Round.one
+    static let last = Round.eleven
+
+    /// Cards dealt this round: three in round one, up to thirteen in round eleven.
+    var cardCount: Int { rawValue + 2 }
+
+    var next: Round? { Round(rawValue: rawValue + 1) }
+    var previous: Round? { Round(rawValue: rawValue - 1) }
+
+    static func < (lhs: Round, rhs: Round) -> Bool { lhs.rawValue < rhs.rawValue }
 }
