@@ -1,145 +1,90 @@
-//
-//  ScoreRow.swift
-//  FiveCrowns
-//
-//  Created by Colin Harris on 14/4/24.
-//
-
 import SwiftUI
 
 struct ScorecardRow: View {
-    @State var player: Player
-    let round: Int
-    let scoreChanged: (() -> Void)
-    let playerDeleted: ((Player) -> Void)
+    @Environment(Game.self) private var game
+    let player: Player
     let editMode: Bool
-    
-    var points: String {
-        if let points = player.pointsFor(round: round) {
-            return "\(points)"
-        } else {
-            return "-"
-        }
-    }
-    
+
     @State private var showingAddScore = false
-    @State private var newScore: String = ""
+    @State private var newScore = ""
     @FocusState private var scoreFieldIsFocused: Bool
-    
-    @State private var showingUpdatePlayer = false
-    @State private var newName: String = ""
-    @FocusState private var nameFieldIsFocused: Bool
-    
+
+    @State private var showingRename = false
+    @State private var newName = ""
+
+    private var points: Int? { player.score(for: game.round) }
+
     var body: some View {
         HStack(spacing: 0) {
             if editMode {
-                Button(action: { playerDeleted(player) }) {
-                    Label("", systemImage: "trash")
-                        .padding(.vertical, 8)
-                        .padding(.leading, 8)
-                        .padding(.trailing, 0)
+                Button { game.removePlayer(id: player.id) } label: {
+                    Image(systemName: "trash").padding(.vertical, 8).padding(.leading, 8)
                 }
-                
                 .foregroundColor(.red)
             }
-            
+
             Text(player.name)
                 .foregroundStyle(.black.opacity(0.7))
                 .fontWeight(.medium)
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(8)
-                .onTapGesture(count: 1, perform: showUpdatePlayer)
-                .onLongPressGesture(perform: showUpdatePlayer)
-                
-            
-            Text(points)
+                .onTapGesture(perform: showRename)
+
+            Text(points.map(String.init) ?? "-")
                 .foregroundStyle(.black.opacity(0.7))
                 .fontWeight(.medium)
                 .frame(minWidth: 44)
                 .padding(8)
-                .border( player.pointsFor(round: round) == nil ? .gray : .blue)
-                .background( player.pointsFor(round: round) == 0 ? .blue.opacity(0.2) : .clear )
+                .border(points == nil ? Color.gray : Color.accentColor)
+                .background(points == 0 ? Color.accentColor.opacity(0.2) : Color.clear)
                 .onTapGesture(perform: showAddScore)
-            
+
             Text("\(player.totalPoints)")
                 .foregroundStyle(.black.opacity(0.7))
                 .fontWeight(.semibold)
                 .frame(minWidth: 44)
                 .padding(8)
-            
         }
         .frame(maxWidth: .infinity)
         .padding(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
         .background(Color("RowColour", bundle: .main).opacity(0.8))
-        .alert("Enter Score", isPresented: $showingAddScore, actions: {
-            Button("Cancel", role: .cancel, action: {})
-            Button("Went Down!", role: .none, action: wentDown)
-            Button("Confirm", role: .none, action: addScore)
+        .alert("Enter Score", isPresented: $showingAddScore) {
+            Button("Cancel", role: .cancel) {}
+            Button("Went Down!") { game.setScore(0, for: player.id) }
+            Button("Confirm") { game.setScore(Int(newScore), for: player.id) }
             TextField("Score", text: $newScore)
                 .keyboardType(.numberPad)
                 .focused($scoreFieldIsFocused)
-        }, message: {
+        } message: {
             Text("Enter score for \(player.name)")
-        })
-        .alert("Rename Player", isPresented: $showingUpdatePlayer, actions: {
-            Button("Cancel", role: .cancel, action: { showingUpdatePlayer = false })
-            Button("Confirm", role: .none, action: updatePlayer)
-            TextField("Player name", text: $newName).keyboardType(.asciiCapable).focused($nameFieldIsFocused)
-        })
-    }
-    
-    func wentDown() {
-        player.setScore(round: round, points: 0)
-        player.updateTotal()
-        scoreChanged()
-    }
-    
-    func addScore() {
-        player.setScore(round: round, points: Int(newScore))
-        player.updateTotal()
-        scoreChanged()
-    }
-    
-    func showAddScore() {
-        if let score = player.pointsFor(round: round) {
-            newScore = "\(score)"
-        } else {
-            newScore = ""
         }
+        .alert("Rename Player", isPresented: $showingRename) {
+            Button("Cancel", role: .cancel) {}
+            Button("Confirm") { game.rename(id: player.id, to: newName) }
+            TextField("Player name", text: $newName).keyboardType(.asciiCapable)
+        }
+    }
+
+    private func showAddScore() {
+        newScore = points.map(String.init) ?? ""
         showingAddScore = true
         scoreFieldIsFocused = true
     }
-    
-    func showUpdatePlayer() {
+
+    private func showRename() {
         newName = player.name
-        showingUpdatePlayer = true
-        nameFieldIsFocused = true
-    }
-    
-    func updatePlayer() {
-        player.setName(name: newName)
+        showingRename = true
     }
 }
 
 #Preview {
-    let player = Player(name: "Player 1", order: 1)
-    player.setScore(round: 1, points: 10)
-    return VStack(spacing: 0) {
+    @Previewable @State var game = Game(store: GameStore(
+        fileURL: FileManager.default.temporaryDirectory.appendingPathComponent("preview.data")))
+    VStack(spacing: 0) {
         ScorecardHeaders()
-        ScorecardRow(
-            player: player,
-            round: 1,
-            scoreChanged: { puts("Score changed!!!") },
-            playerDeleted: { player in puts("Player Deleted!!!") },
-            editMode: true
-        )
+        ScorecardRow(player: Player(name: "Ada"), editMode: true)
         Divider()
-        ScorecardRow(
-            player: player,
-            round: 1,
-            scoreChanged: { puts("Score changed!!!") },
-            playerDeleted: { player in puts("Player Deleted!!!") },
-            editMode: true
-        )
+        ScorecardRow(player: Player(name: "Grace"), editMode: true)
     }
+    .environment(game)
 }

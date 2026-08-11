@@ -1,49 +1,35 @@
-//
-//  Player.swift
-//  FiveCrowns
-//
-//  Created by Colin Harris on 14/4/24.
-//
-
 import Foundation
+import Observation
 
+/// One player's identity and per-round scores for a single game.
+///
+/// Deliberately not `Codable`: persistence goes through `PlayerSnapshot` so
+/// the save format does not track the `@Observable` macro's backing storage.
 @Observable
-class Player: Codable, Identifiable {
-    var id = UUID()
+final class Player: Identifiable {
+    let id: UUID
     var name: String
-    var order: Int
-    var scores: [Int: Int?] = [:]
-    var totalPoints: Int = 0
-    
-    init(name: String, order: Int) {
+    private(set) var scores: [Round: Int]
+
+    init(id: UUID = UUID(), name: String, scores: [Round: Int] = [:]) {
+        self.id = id
         self.name = name
-        self.order = order
+        self.scores = scores
     }
-    
-    func setName(name: String) {
-        self.name = name
-    }
-    
-    func setScore(round: Int, points: Int? = nil) {
-        scores[round] = points    
-        updateTotal()
-    }
-    
-    func updateTotal() {
-        totalPoints = scores.values.reduce(0) { total, points in
-            return total + (points ?? 0)
+
+    /// Derived rather than stored, so it can never drift out of sync.
+    var totalPoints: Int { scores.values.reduce(0, +) }
+
+    func score(for round: Round) -> Int? { scores[round] }
+
+    /// Passing `nil` clears the entry, which is how "no score yet" is represented.
+    func setScore(_ points: Int?, for round: Round) {
+        if let points {
+            scores[round] = points
+        } else {
+            scores.removeValue(forKey: round)
         }
     }
-    
-    func pointsFor(round: Int) -> Int? {
-        if let points = scores[round] {
-            return points
-        }
-        return nil
-    }
-    
-    func reset() {
-        scores = [:]
-        totalPoints = 0
-    }
+
+    func resetScores() { scores = [:] }
 }

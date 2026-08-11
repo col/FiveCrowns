@@ -1,38 +1,30 @@
-//
-//  FiveCrownsApp.swift
-//  FiveCrowns
-//
-//  Created by Colin Harris on 14/4/24.
-//
-
 import SwiftUI
 
 @main
 struct FiveCrownsApp: App {
-    @State private var game = Game()
-    
+    @State private var game: Game
+
+    init() {
+        // A store that cannot reach the documents directory still lets the app
+        // run; it simply will not persist.
+        let store = (try? GameStore.documents())
+            ?? GameStore(fileURL: FileManager.default.temporaryDirectory
+                .appendingPathComponent("game.data"))
+        _game = State(initialValue: Game(store: store))
+    }
+
     var body: some Scene {
         WindowGroup {
-            ScorecardView(round: 1) {
-                Task {
-                    do {
-                        try await game.save(players: game.players)
-                    } catch {
-                        AppLog.persistence.error("Save failed: \(error.localizedDescription, privacy: .public)")
-                    }
-                }
-            }.background(Gradient(colors: [
-                Color("BackgroundDark", bundle: .main),
-                Color("BackgroundMiddle", bundle: .main),
-                Color("Background", bundle: .main)
-            ]).opacity(0.8))
-            .task {
-                do {
-                    try await game.load()
-                } catch {
-                    AppLog.persistence.error("Load failed, starting empty: \(error.localizedDescription, privacy: .public)")
-                }
-            }
-        }.environment(game)
+            ScorecardView()
+                .environment(game)
+                .background(
+                    Gradient(colors: [
+                        Color("BackgroundDark", bundle: .main),
+                        Color("BackgroundMiddle", bundle: .main),
+                        Color("Background", bundle: .main),
+                    ]).opacity(0.8)
+                )
+                .task { await game.loadFromDisk() }
+        }
     }
 }

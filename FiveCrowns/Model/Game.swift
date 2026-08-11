@@ -1,71 +1,141 @@
-//
-//  Game.swift
-//  FiveCrowns
-//
-//  Created by Colin Harris on 14/4/24.
-//
-
 import Foundation
-import SwiftUI
+import Observation
 
-@Observable class Game {
-    var players: [Player] = []
-    
-    func addPlayer(name: String) {
-        players.append(Player(name: name, order: players.count + 1))
+/// The state and rules of one game of Five Crowns.
+@MainActor
+@Observable
+final class Game {
+    private(set) var players: [Player] = []
+    private(set) var round: Round = .first
+    /// Set when a background save fails, so the UI can say so without crashing.
+    private(set) var saveFailed = false
+
+    private var announcedRounds: Set<Round> = []
+    private let store: GameStore
+
+    init(store: GameStore) {
+        self.store = store
     }
-    
-    func removePlayer(name: String) {
-        players.removeAll { $0.name == name }
+
+    // MARK: Roster
+
+    func addPlayer(named name: String) {
+        let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return }
+        players.append(Player(name: trimmed))
+        autosave()
     }
-    
-    func leaderboardPlayers() -> [RankedPlayer] {
-        return RankedPlayer.rankPlayers(players: players)
+
+    func removePlayer(id: Player.ID) {
+        players.removeAll { $0.id == id }
+        autosave()
     }
-    
-    func winningPlayer() -> Player? {
-        return leaderboardPlayers().first?.player
+
+    func rename(id: Player.ID, to name: String) {
+        let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty, let player = players.first(where: { $0.id == id }) else { return }
+        player.name = trimmed
+        autosave()
     }
-    
-    func reset() {
-        players.forEach { $0.reset() }
+
+    // MARK: Scoring
+
+    func setScore(_ points: Int?, for id: Player.ID) {
+        players.first { $0.id == id }?.setScore(points, for: round)
+        autosave()
     }
-    
-    func clearPlayers() {
-        players = []
+
+    func score(for id: Player.ID) -> Int? {
+        players.first { $0.id == id }?.score(for: round)
     }
-    
-    private static func fileURL() throws -> URL {
-        try FileManager.default.url(for: .documentDirectory,
-                                            in: .userDomainMask,
-                                            appropriateFor: nil,
-                                            create: false)
-        .appendingPathComponent("game.data")
+
+    // MARK: Rules
+
+    var isRoundComplete: Bool {
+        !players.isEmpty && players.allSatisfy { $0.score(for: round) != nil }
     }
-    
-    func load() async throws {
-        let task = Task<[Player], Error> {
-            let fileURL = try Self.fileURL()
-            guard let data = try? Data(contentsOf: fileURL) else {
-                return []
+
+    var isGameOver: Bool { round == .last && isRoundComplete }
+
+    /// True the first time a round becomes complete, false after it has been
+    /// acknowledged — so correcting a score does not re-announce.
+    var needsRoundCompleteAnnouncement: Bool {
+        isRoundComplete && !announcedRounds.contains(round)
+    }
+
+    func acknowledgeRound() {
+        announcedRounds.insert(round)
+    }
+
+    var canAdvance: Bool { round.next != nil }
+    var canRetreat: Bool { round.previous != nil }
+
+    func advance() {
+        guard let next = round.next else { return }
+        round = next
+        autosave()
+    }
+
+    func retreat() {
+        guard let previous = round.previous else { return }
+        round = previous
+        autosave()
+    }
+
+    func startNewGame() {
+        players.forEach { $0.resetScores() }
+        round = .first
+        announcedRounds = []
+        autosave()
+    }
+
+    var leaderboard: [RankedPlayer] { Ranking.rank(players) }
+    var winner: Player? { leaderboard.first?.player }
+
+    // MARK: Persistence
+
+    func snapshot() -> GameSnapshot {
+        GameSnapshot(
+            round: round.rawValue,
+            players: players.map {
+                PlayerSnapshot(
+                    id: $0.id,
+                    name: $0.name,
+                    scores: Dictionary(uniqueKeysWithValues:
+                        $0.scores.map { ($0.key.rawValue, $0.value) })
+                )
             }
-            if data.count != 0 {
-                let players = try JSONDecoder().decode([Player].self, from: data)
-                return players
-            } else {
-                return []
-            }
-        }
-        let players = try await task.value
-        self.players = players
+        )
     }
-    
-    func save(players: [Player]) async throws {
-        let task = Task {
-            let data = try JSONEncoder().encode(players)
-            let outfile = try Self.fileURL()
-            try data.write(to: outfile)
+
+    func apply(_ snapshot: GameSnapshot) {
+        round = snapshot.clampedRound
+        players = snapshot.players.map { snap in
+            Player(
+                id: snap.id,
+                name: snap.name,
+                scores: Dictionary(uniqueKeysWithValues:
+                    snap.scores.compactMap { key, value in
+                        Round(rawValue: key).map { ($0, value) }
+                    })
+            )
         }
-        _ = try await task.value
+        announcedRounds = []
+    }
+
+    func loadFromDisk() async {
+        if let snapshot = await store.load() {
+            apply(snapshot)
+        }
+    }
+
+    /// Flushes any pending debounced write. Call on scene-phase change.
+    func flush() async {
+        await store.flush()
+    }
+
+    private func autosave() {
+        let snapshot = snapshot()
+        Task { [store] in await store.scheduleSave(snapshot) }
     }
 }

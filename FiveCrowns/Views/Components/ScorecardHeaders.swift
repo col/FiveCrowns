@@ -39,25 +39,14 @@ struct ScorecardHeaders: View {
 }
 
 #Preview {
-    let player = Player(name: "Player 1", order: 1)
-    player.setScore(round: 1, points: 10)
-    return VStack(spacing: 0) {
+    @Previewable @State var game = Game(store: GameStore(
+        fileURL: FileManager.default.temporaryDirectory.appendingPathComponent("preview.data")))
+    VStack(spacing: 0) {
         ScorecardHeaders()
-        ScorecardRow(
-            player: player,
-            round: 1,
-            scoreChanged: { puts("Score changed!!!") },
-            playerDeleted: { player in puts("Player Deleted!!!") },
-            editMode: false
-        )
+        ScorecardRow(player: Player(name: "Ada"), editMode: false)
         Divider()
-        ScorecardRow(
-            player: player,
-            round: 1,
-            scoreChanged: { puts("Score changed!!!") },
-            playerDeleted: { player in puts("Player Deleted!!!") },
-            editMode: false
-        )
+        ScorecardRow(player: Player(name: "Grace"), editMode: false)
         Divider()
     }
+    .environment(game)
 }
