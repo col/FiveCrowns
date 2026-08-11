@@ -1382,6 +1382,27 @@ struct GameStoreTests {
         #expect(quarantined.contains { $0.hasPrefix("game.data.corrupt") })
     }
 
+    @Test("A file from a newer build is neither loaded nor overwritten")
+    func refusesFutureVersion() async throws {
+        let url = tempURL()
+        try FileManager.default.createDirectory(
+            at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
+        let future = Data(#"{"schemaVersion":99,"round":7,"players":[],"dealerIndex":2}"#.utf8)
+        try future.write(to: url)
+
+        let store = GameStore(fileURL: url)
+        #expect(await store.load() == nil)
+
+        // A save attempt after seeing a future file must be a no-op.
+        try await store.save(GameSnapshot(round: 1, players: []))
+        #expect(try Data(contentsOf: url) == future)
+
+        // It must not be quarantined either - it is valid, just newer.
+        let siblings = try FileManager.default.contentsOfDirectory(
+            atPath: url.deletingLastPathComponent().path)
+        #expect(!siblings.contains { $0.contains("corrupt") })
+    }
+
     @Test("Debounced saves coalesce into a single write")
     func debouncesSaves() async throws {
         let url = tempURL()
@@ -1415,6 +1436,9 @@ actor GameStore {
     private let debounce: Duration
     private var pendingSave: Task<Void, Never>?
     private var pendingSnapshot: GameSnapshot?
+    /// Set when the file on disk was written by a newer build. Writing would
+    /// destroy data this build cannot represent, so all saves become no-ops.
+    private var isReadOnly = false
 
     init(fileURL: URL, debounce: Duration = .milliseconds(500)) {
         self.fileURL = fileURL
@@ -1434,6 +1458,16 @@ actor GameStore {
             return nil
         }
         if let snapshot = try? JSONDecoder().decode(GameSnapshot.self, from: data) {
+            guard !snapshot.isFromFutureVersion else {
+                // Written by a newer build. Loading would silently drop fields
+                // we do not understand, and saving would destroy them. Start
+                // empty and leave the file untouched so the newer build can
+                // still read it.
+                isReadOnly = true
+                AppLog.persistence.error(
+                    "Save file is schema v\(snapshot.schemaVersion) but this build reads v\(GameSnapshot.currentSchemaVersion); refusing to load or overwrite.")
+                return nil
+            }
             return snapshot
         }
         if let migrated = GameSnapshot(legacyData: data) {
@@ -1445,6 +1479,7 @@ actor GameStore {
     }
 
     func save(_ snapshot: GameSnapshot) throws {
+        guard !isReadOnly else { return }
         try FileManager.default.createDirectory(
             at: fileURL.deletingLastPathComponent(),
             withIntermediateDirectories: true)
