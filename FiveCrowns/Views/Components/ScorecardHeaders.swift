@@ -11,21 +11,21 @@ struct ScorecardHeaders: View {
     var body: some View {
         HStack(spacing: 0) {
             Text("Player")
-                .foregroundStyle(.white.opacity(0.9))
+                .foregroundStyle(Theme.onHeader)
                 .fontWeight(.semibold)
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(8)
 //                .padding(.horizontal, 8)
             
             Text("Score")
-                .foregroundStyle(.white.opacity(0.9))
+                .foregroundStyle(Theme.onHeader)
                 .fontWeight(.semibold)
                 .frame(minWidth: 44)
                 .padding(8)
 //                .padding(.horizontal, 8)
             
             Text("Total")
-                .foregroundStyle(.white.opacity(0.9))
+                .foregroundStyle(Theme.onHeader)
                 .fontWeight(.semibold)
                 .frame(minWidth: 44)
                 .padding(8)
@@ -34,7 +34,7 @@ struct ScorecardHeaders: View {
         }
         .frame(maxWidth: .infinity)
         .padding(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
-        .background(Color("HeaderRowBackground", bundle: .main).opacity(0.8))
+        .background(Theme.headerRow)
     }
 }
 

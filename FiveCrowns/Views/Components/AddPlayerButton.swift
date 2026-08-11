@@ -20,7 +20,7 @@ struct AddPlayerButton: View {
                 .padding(.horizontal, 16)
         }
         .buttonStyle(.borderedProminent)
-        .tint(Color("ButtonColour", bundle: .main).opacity(0.8))
+        .tint(Theme.button)
         .alert("Add Player", isPresented: $showingAddPlayer) {
             Button("Cancel", role: .cancel) { newPlayerName = "" }
             Button("Confirm", action: addPlayer)

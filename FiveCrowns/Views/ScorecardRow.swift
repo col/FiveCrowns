@@ -24,14 +24,14 @@ struct ScorecardRow: View {
             }
 
             Text(player.name)
-                .foregroundStyle(.black.opacity(0.7))
+                .foregroundStyle(Theme.primaryText)
                 .fontWeight(.medium)
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(8)
                 .onTapGesture(perform: showRename)
 
             Text(points.map(String.init) ?? "-")
-                .foregroundStyle(.black.opacity(0.7))
+                .foregroundStyle(Theme.primaryText)
                 .fontWeight(.medium)
                 .frame(minWidth: 44)
                 .padding(8)
@@ -40,14 +40,14 @@ struct ScorecardRow: View {
                 .onTapGesture(perform: showAddScore)
 
             Text("\(player.totalPoints)")
-                .foregroundStyle(.black.opacity(0.7))
+                .foregroundStyle(Theme.primaryText)
                 .fontWeight(.semibold)
                 .frame(minWidth: 44)
                 .padding(8)
         }
         .frame(maxWidth: .infinity)
         .padding(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
-        .background(Color("RowColour", bundle: .main).opacity(0.8))
+        .background(Theme.row)
         .alert("Enter Score", isPresented: $showingAddScore) {
             Button("Cancel", role: .cancel) {}
             Button("Went Down!") { game.setScore(0, for: player.id) }

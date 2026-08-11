@@ -13,7 +13,7 @@ struct LeaderboardView: View {
     
     var body: some View {
         Text("Leaderboard")
-            .foregroundStyle(.black.opacity(0.7))
+            .foregroundStyle(Theme.primaryText)
             .fontWeight(.bold)
             .font(.title)
             .padding()
@@ -36,7 +36,7 @@ struct LeaderboardView: View {
                 .padding(.vertical, 4)
                 .padding(.horizontal, 16)
         }
-        .tint(Color("ButtonColour", bundle: .main).opacity(0.8))
+        .tint(Theme.button)
         .buttonStyle(.borderedProminent)
         
         Spacer()

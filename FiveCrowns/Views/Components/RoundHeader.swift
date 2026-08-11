@@ -8,7 +8,7 @@ struct RoundHeader: View {
             logo
             Spacer()
             Text("\(round.cardCount) Card Round")
-                .foregroundStyle(.black.opacity(0.7))
+                .foregroundStyle(Theme.primaryText)
                 .fontWeight(.bold)
                 .font(.title2)
                 .padding()

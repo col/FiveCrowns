@@ -17,13 +17,7 @@ struct FiveCrownsApp: App {
         WindowGroup {
             ScorecardView()
                 .environment(game)
-                .background(
-                    Gradient(colors: [
-                        Color("BackgroundDark", bundle: .main),
-                        Color("BackgroundMiddle", bundle: .main),
-                        Color("Background", bundle: .main),
-                    ]).opacity(0.8)
-                )
+                .background(Theme.backgroundGradient)
                 .task { await game.loadFromDisk() }
         }
     }

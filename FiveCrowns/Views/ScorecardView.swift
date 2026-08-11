@@ -9,7 +9,7 @@ struct ScorecardView: View {
     @State private var showingGameOver = false
     @State private var showingNewGameConfirmation = false
 
-    private let buttonTint = Color("ButtonColour", bundle: .main).opacity(0.8)
+    private let buttonTint = Theme.button
 
     var body: some View {
         VStack(spacing: 0) {
@@ -57,7 +57,7 @@ struct ScorecardView: View {
             VStack(spacing: 0) {
                 ForEach(game.players) { player in
                     ScorecardRow(player: player, editMode: game.round == .one)
-                    Divider().overlay(Color("HeaderRowBackground", bundle: .main))
+                    Divider().overlay(Theme.headerRow)
                 }
                 if !game.players.isEmpty && game.round == .one {
                     AddPlayerButton().padding(.top, 16)
