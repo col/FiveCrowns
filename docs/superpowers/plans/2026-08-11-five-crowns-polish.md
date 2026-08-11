@@ -2414,6 +2414,8 @@ enum Theme {
 
 - [ ] **Step 2: Replace every stringly-typed colour and hardcoded text colour**
 
+**Also settle the accent colour.** Task 13 introduced `Color.accentColor` in `ScorecardRow`'s score cell where the old code used a literal `.blue`. The `AccentColor` colorset in the asset catalog is **empty** (no colour defined), so it currently falls through to the system default. Give it explicit light and dark values as part of this task, or replace those two uses with a `Theme` colour — either is fine, but do not leave an empty colorset driving visible UI.
+
 - `Color("ButtonColour", bundle: .main).opacity(0.8)` → `Theme.button`
 - `Color("RowColour", bundle: .main).opacity(0.8)` → `Theme.row`
 - `Color("HeaderRowBackground", bundle: .main).opacity(0.8)` → `Theme.headerRow`
@@ -2723,7 +2725,58 @@ xcodebuild -project FiveCrowns.xcodeproj -scheme FiveCrowns \
 
 Expected: **no output.**
 
-- [ ] **Step 5: Replace the UI test boilerplate with a real smoke test**
+- [ ] **Step 5: Wire up `saveFailed`, which is currently dead state**
+
+`Game.saveFailed` was declared in Task 13 but nothing ever assigns it, and nothing reads it — dead state, which the acceptance criteria forbid. The spec promised a non-blocking banner on save failure, so wire it rather than delete it.
+
+In `GameStore`, record the outcome of the last write:
+
+```swift
+    /// Whether the most recent write attempt failed. Read after `flush()`.
+    private(set) var lastWriteFailed = false
+
+    private func writePending() {
+        guard let snapshot = pendingSnapshot else { return }
+        pendingSnapshot = nil
+        do {
+            try save(snapshot)
+            lastWriteFailed = false
+        } catch {
+            lastWriteFailed = true
+            AppLog.persistence.error(
+                "Save failed: \(error.localizedDescription, privacy: .public)")
+        }
+    }
+```
+
+In `Game`, pick it up at the moment it matters — when the app is being backgrounded:
+
+```swift
+    func flush() async {
+        await store.flush()
+        saveFailed = await store.lastWriteFailed
+    }
+```
+
+`saveFailed` must lose its `private(set)`-only-internal status only if the view cannot read it; `private(set) var` is already readable from the view, so leave the declaration as is.
+
+In `ScorecardView`, surface it without blocking anything:
+
+```swift
+            if game.saveFailed {
+                Label("Couldn't save this game", systemImage: "exclamationmark.triangle.fill")
+                    .font(.footnote)
+                    .foregroundStyle(.white)
+                    .padding(.vertical, 6)
+                    .frame(maxWidth: .infinity)
+                    .background(.red.opacity(0.85))
+                    .accessibilityAddTraits(.isStaticText)
+            }
+```
+
+Place it directly under `RoundHeader` in the `VStack`. Add a test that a store pointed at an unwritable location sets the flag after `flush()`.
+
+- [ ] **Step 6: Replace the UI test boilerplate with a real smoke test**
 
 Both UI test files contain only Xcode boilerplate — `testExample()` with an empty body and a launch performance measurement that adds ~24s to every run for no signal.
 
@@ -2767,7 +2820,7 @@ xcodebuild test -project FiveCrowns.xcodeproj -scheme FiveCrowns \
 
 Expected: 1 test passes. If the app has a save file from earlier manual testing, the button will not appear — reset first with `xcrun simctl uninstall booted com.challengr.FiveCrowns`.
 
-- [ ] **Step 6: Verify with VoiceOver**
+- [ ] **Step 7: Verify with VoiceOver**
 
 ```bash
 xcrun simctl spawn booted notifyutil -s com.apple.VoiceOver4/EnabledWhenApplicationsLaunch 1
@@ -2775,7 +2828,7 @@ xcrun simctl spawn booted notifyutil -s com.apple.VoiceOver4/EnabledWhenApplicat
 
 Swipe through the scorecard and confirm each score cell announces "Score for <name>, N points" rather than a bare number. Disable afterwards by setting the flag to `0`.
 
-- [ ] **Step 7: Commit**
+- [ ] **Step 8: Commit**
 
 ```bash
 git add -A
