@@ -93,4 +93,30 @@ struct GameStoreTests {
         let loaded = try #require(await store.load())
         #expect(loaded.round == 5)
     }
+
+    @Test("lastWriteFailed reflects the outcome of the most recent write")
+    func flagsGenuineWriteFailure() async throws {
+        // A regular file where the parent directory needs to be, so
+        // createDirectory fails rather than succeeding.
+        let blocker = FileManager.default.temporaryDirectory
+            .appendingPathComponent("gamestore-blocker-\(UUID().uuidString)")
+        try Data("not a directory".utf8).write(to: blocker)
+        let url = blocker.appendingPathComponent("nested").appendingPathComponent("game.data")
+
+        let store = GameStore(fileURL: url)
+        #expect(await store.lastWriteFailed == false)
+
+        await store.scheduleSave(GameSnapshot(round: 1, players: []))
+        await store.flush()
+        #expect(await store.lastWriteFailed == true)
+
+        // Clear the obstruction and write again: a genuine success should
+        // flip the flag back, proving it tracks the *most recent* write
+        // rather than latching on the first failure.
+        try FileManager.default.removeItem(at: blocker)
+        await store.scheduleSave(GameSnapshot(round: 2, players: []))
+        await store.flush()
+        #expect(await store.lastWriteFailed == false)
+        #expect(await store.load()?.round == 2)
+    }
 }

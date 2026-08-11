@@ -27,6 +27,7 @@ struct ScorecardView: View {
             } else {
                 RoundHeader(round: game.round)
             }
+            if game.saveFailed { SaveFailedBanner() }
             ScorecardList()
             if !isCompactHeight {
                 Spacer(minLength: 0)

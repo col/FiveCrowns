@@ -132,6 +132,7 @@ final class Game {
     /// Flushes any pending debounced write. Call on scene-phase change.
     func flush() async {
         await store.flush()
+        saveFailed = await store.lastWriteFailed
     }
 
     private func autosave() {

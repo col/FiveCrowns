@@ -11,6 +11,8 @@ actor GameStore {
     /// Set when the file on disk was written by a newer build. Writing would
     /// destroy data this build cannot represent, so all saves become no-ops.
     private var isReadOnly = false
+    /// Whether the most recent write attempt failed. Read after `flush()`.
+    private(set) var lastWriteFailed = false
 
     init(fileURL: URL, debounce: Duration = .milliseconds(500)) {
         self.fileURL = fileURL
@@ -79,9 +81,11 @@ actor GameStore {
         pendingSnapshot = nil
         do {
             try save(snapshot)
+            lastWriteFailed = false
         } catch {
             AppLog.persistence.error(
                 "Save failed: \(error.localizedDescription, privacy: .public)")
+            lastWriteFailed = true
         }
     }
 
