@@ -18,7 +18,7 @@ struct FiveCrownsApp: App {
                     do {
                         try await game.save(players: game.players)
                     } catch {
-                        fatalError(error.localizedDescription)
+                        AppLog.persistence.error("Save failed: \(error.localizedDescription, privacy: .public)")
                     }
                 }
             }.background(Gradient(colors: [
@@ -30,7 +30,7 @@ struct FiveCrownsApp: App {
                 do {
                     try await game.load()
                 } catch {
-                    fatalError(error.localizedDescription)
+                    AppLog.persistence.error("Load failed, starting empty: \(error.localizedDescription, privacy: .public)")
                 }
             }
         }.environment(game)

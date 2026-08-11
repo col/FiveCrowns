@@ -49,7 +49,6 @@ import SwiftUI
             guard let data = try? Data(contentsOf: fileURL) else {
                 return []
             }
-            puts("data = '\(String(data: data, encoding: .utf8) ?? "unknown")'")
             if data.count != 0 {
                 let players = try JSONDecoder().decode([Player].self, from: data)
                 return players
@@ -62,13 +61,11 @@ import SwiftUI
     }
     
     func save(players: [Player]) async throws {
-        puts("Saving game data...")
         let task = Task {
             let data = try JSONEncoder().encode(players)
             let outfile = try Self.fileURL()
             try data.write(to: outfile)
         }
         _ = try await task.value
-        puts("done.")
     }
 }
