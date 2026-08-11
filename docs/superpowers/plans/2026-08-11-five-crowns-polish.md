@@ -810,6 +810,19 @@ Co-Authored-By: Claude Opus 5 (1M context) <noreply@anthropic.com>"
 
 The core of the plan. Each task is TDD: test first, watch it fail, implement, watch it pass.
 
+## Execution order: 9 → 11 → 12 → (10 + 13)
+
+Tasks are **executed** in a different order than they are numbered, because Tasks 11 and 12 only *add* files and can each land green on their own:
+
+| Order | Task | Buildable alone? |
+|---|---|---|
+| 1st | 9 — `Round` enum | Yes — new type, nothing adopts it yet |
+| 2nd | 11 — `GameSnapshot` DTO + migration | Yes — new files only; needs `Round` |
+| 3rd | 12 — `GameStore` actor | Yes — new files only; needs `GameSnapshot` and `AppLog` |
+| 4th | 10 + 13 — `Player` rewrite and `Game` rules | **No** — Task 10 breaks the app target until Task 13 restores it |
+
+Only the final pair is genuinely coupled, so only that pair shares a commit. This gives three extra green checkpoints and shrinks the one unavoidable big-bang commit.
+
 ## Task 9: Introduce `Round` as an enum
 
 `Round.wildcardFor` is deleted rather than carried over — it is unused, displaying the wild card is an explicit non-goal, and "no dead code" is an acceptance criterion. It remains in git history.
@@ -1092,7 +1105,9 @@ func reset() {
 
 - [ ] **Step 5: Commit once Task 13 restores a building state**
 
-This task intentionally leaves the app target non-building. Do not commit alone — Tasks 10 through 13 land as one commit at the end of Task 13.
+This task intentionally leaves the app target non-building, because `Player` stops being `Codable` while `Game.load()`/`save(players:)` still expect it to be. Do not commit alone — **Tasks 10 and 13 land as a single commit** at the end of Task 13.
+
+Execute this task only *after* Tasks 9, 11 and 12 are committed, so the window in which the project does not build is as short as possible.
 
 ---
 
@@ -1276,7 +1291,20 @@ xcodebuild test -project FiveCrowns.xcodeproj -scheme FiveCrowns \
 
 Expected: 5 tests pass. `decodesLegacyFixture` is the important one — if `ada.scores[2]` comes back `nil` instead of `0`, the `compactMapValues` is discarding real zeros and must be fixed.
 
-- [ ] **Step 5: No commit yet** — lands with Task 13.
+- [ ] **Step 5: Commit**
+
+Task 11 adds only new files, so it lands green on its own — execute it *before* Task 10.
+
+```bash
+git add -A
+git commit -m "feat: add GameSnapshot DTO with v1 save migration
+
+Decouples the save format from @Observable's backing storage, which was
+leaking _name and _\$observationRegistrar into the JSON. Reads genuine v1
+files, verified against a fixture captured from the pre-refactor build.
+
+Co-Authored-By: Claude Opus 5 (1M context) <noreply@anthropic.com>"
+```
 
 ---
 
@@ -1483,7 +1511,21 @@ xcodebuild test -project FiveCrowns.xcodeproj -scheme FiveCrowns \
 
 Expected: 5 tests pass.
 
-- [ ] **Step 5: No commit yet** — lands with Task 13.
+- [ ] **Step 5: Commit**
+
+Task 12 also adds only new files, so it lands green on its own — execute it *before* Task 10.
+
+```bash
+git add -A
+git commit -m "feat: add GameStore actor for persistence
+
+File I/O moves off the main thread - the previous Task {} wrappers
+inherited the caller's executor and did not. Atomic writes, debounced
+coalescing saves, and corrupt files quarantined rather than crashing
+the app on every launch.
+
+Co-Authored-By: Claude Opus 5 (1M context) <noreply@anthropic.com>"
+```
 
 ---
 
@@ -2130,28 +2172,28 @@ xcrun simctl launch booted com.challengr.FiveCrowns
 
 In the simulator: add two players, enter scores, advance to round 4, background the app with Cmd+Shift+H, then relaunch. **Expected: the app reopens on round 4 with scores intact.** Before this change it reopened on round 1.
 
-- [ ] **Step 8: Commit Tasks 10–13 together**
+- [ ] **Step 8: Commit Tasks 10 and 13 together**
 
 ```bash
 git add -A
-git commit -m "refactor: extract game rules into Game, add persistence DTO and store
+git commit -m "refactor: extract game rules into Game, adopt the persistence layer
 
-Model:
-- Player drops the [Int: Int?] double optional, the unused order field, and
-  the stored totalPoints (now computed, so it cannot drift)
-- Game owns round number, navigation, completion and game-over rules
-- Round acknowledgement stops the completion alert re-firing on every edit
+Player:
+- drops the [Int: Int?] double optional, the unused order field, and the
+  stored totalPoints (now computed, so it cannot drift out of sync)
+- no longer Codable; persistence goes through GameSnapshot
+
+Game:
+- owns the round number, navigation, completion and game-over rules
+- round acknowledgement stops the completion alert re-firing on every edit
 - Ranking becomes a pure function on a struct; dense semantics preserved
+- autosaves through GameStore instead of only saving on background
 
-Persistence:
-- GameSnapshot DTO decouples the save format from @Observable's backing
-  storage, which was leaking _name and _$observationRegistrar into JSON
-- Reads genuine v1 files and migrates them, verified against a captured fixture
-- Corrupt files are quarantined rather than crashing on every launch
-- GameStore is an actor, so file I/O actually leaves the main thread
-- Saves are debounced and coalesced instead of only firing on background
+Views become layout and wiring only; ScorecardRow reads Game from the
+environment rather than taking callbacks.
 
-Fixes the round number not surviving relaunch.
+Fixes the round number not surviving relaunch - the app previously
+reopened on round 1 with scores intact.
 
 Co-Authored-By: Claude Opus 5 (1M context) <noreply@anthropic.com>"
 ```
