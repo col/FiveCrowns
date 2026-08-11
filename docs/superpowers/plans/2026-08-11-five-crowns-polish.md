@@ -103,7 +103,7 @@ Expected: a few hundred lines. Keep this file; Step 6 diffs against it.
 
 Make exactly these edits. Preserve every `XCBuildConfiguration` block **verbatim** — build settings are not part of this migration.
 
-1. `objectVersion = 56;` → `objectVersion = 77;`
+1. `objectVersion = 56;` → `objectVersion = 70;` (70 is the baseline that introduces `PBXFileSystemSynchronizedRootGroup`; anything higher works but is needlessly less compatible)
 2. `compatibilityVersion = "Xcode 14.0";` → `compatibilityVersion = "Xcode 15.0";`
 3. Delete the **entire** `PBXBuildFile` section (all 17 entries) including its `/* Begin */` and `/* End */` markers.
 4. In the `PBXFileReference` section, delete every entry whose `sourceTree` is `"<group>"`. **Keep** the three `BUILT_PRODUCTS_DIR` product entries (`FiveCrowns.app`, `FiveCrownsTests.xctest`, `FiveCrownsUITests.xctest`).
@@ -142,6 +142,10 @@ The root group's `children` list already references these three IDs — leave it
 ```
 
 Use `EF2AE4952BCC16650048D0AB` for the `FiveCrownsTests` target and `EF2AE49F2BCC16650048D0AB` for the `FiveCrownsUITests` target.
+
+9. Add a `PBXFileSystemSynchronizedBuildFileExceptionSet` excluding `Info.plist` from the app target, and reference it from the `FiveCrowns` root group's `exceptions` array. A synchronized group sweeps `Info.plist` into Copy Bundle Resources, which collides with `INFOPLIST_FILE` processing and fails the build with `error: Multiple commands produce '.../FiveCrowns.app/Info.plist'`. Excluding it restores exactly the pre-migration bundle contents.
+
+**Applies to later tasks:** any other *non-source* file dropped into `FiveCrowns/` will likewise be swept into Copy Bundle Resources and may need its own exception. Swift files and asset catalogs need no action. `PrivacyInfo.xcprivacy` (Task 20) *should* be bundled, so it needs no exception.
 
 - [ ] **Step 3: Verify the project still parses**
 
