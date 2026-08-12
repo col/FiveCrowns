@@ -13,13 +13,13 @@ struct LeaderboardView: View {
     
     var body: some View {
         Text("Leaderboard")
-            .foregroundStyle(.black.opacity(0.7))
+            .foregroundStyle(Theme.primaryText)
             .fontWeight(.bold)
             .font(.title)
             .padding()
         
         VStack {
-            ForEach(game.leaderboardPlayers()) { rankedPlayer in
+            ForEach(game.leaderboard) { rankedPlayer in
                 HStack {
                     Text("\(rankedPlayer.rank). ").padding(.trailing, 16)
                     Text(rankedPlayer.player.name)
@@ -33,10 +33,11 @@ struct LeaderboardView: View {
         Button(action: { showView = false }) {
             Label("Close", systemImage: "xmark")
                 .fontWeight(.semibold)
+                .foregroundStyle(Theme.onButton)
                 .padding(.vertical, 4)
                 .padding(.horizontal, 16)
         }
-        .tint(Color("ButtonColour", bundle: .main).opacity(0.8))
+        .tint(Theme.button)
         .buttonStyle(.borderedProminent)
         
         Spacer()
@@ -44,15 +45,16 @@ struct LeaderboardView: View {
 }
 
 #Preview {
-    @State var game = Game()
-    game.addPlayer(name: "Player 1")
-    game.addPlayer(name: "Player 2")
-    game.addPlayer(name: "Player 3")
-    
-    game.players[0].setScore(round: 1, points: 3)
-    game.players[1].setScore(round: 1, points: 20)
-    game.players[2].setScore(round: 1, points: 0)
-    
-    @State var showView = true
-    return LeaderboardView(showView: $showView).environment(game)
+    @Previewable @State var showView = true
+    @Previewable @State var game = Game(store: GameStore(
+        fileURL: FileManager.default.temporaryDirectory.appendingPathComponent("preview.data")))
+    LeaderboardView(showView: $showView)
+        .environment(game)
+        .onAppear {
+            game.apply(GameSnapshot(round: 1, players: [
+                PlayerSnapshot(id: UUID(), name: "Ada", scores: [1: 3]),
+                PlayerSnapshot(id: UUID(), name: "Grace", scores: [1: 20]),
+                PlayerSnapshot(id: UUID(), name: "Sam", scores: [1: 0]),
+            ]))
+        }
 }

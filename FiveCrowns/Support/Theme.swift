@@ -1,0 +1,21 @@
+import SwiftUI
+
+/// Semantic colours over the asset catalog. Xcode generates a symbol per
+/// colorset, so these are checked at compile time rather than by string.
+enum Theme {
+    static let background = Color(.background)
+    static let backgroundMiddle = Color(.backgroundMiddle)
+    static let backgroundDark = Color(.backgroundDark)
+    static let row = Color(.rowColour)
+    static let headerRow = Color(.headerRowBackground)
+    static let button = Color(.buttonColour)
+
+    static let primaryText = Color(.primaryText)
+    static let secondaryText = Color(.secondaryText)
+    static let onHeader = Color(.onHeader)
+    /// Label colour for the amber button fill. Near-black in *both*
+    /// appearances - the fill is light in both, so this does not invert.
+    static let onButton = Color(.onButton)
+
+    static let backgroundGradient = Gradient(colors: [backgroundDark, backgroundMiddle, background])
+}
